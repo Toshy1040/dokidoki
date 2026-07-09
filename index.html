@@ -296,7 +296,7 @@ a{color:inherit}
 .f-row{display:flex;gap:10px}
 .f-row .f-group{flex:1}
 .photo-pick{
-  width:100%;aspect-ratio:16/9;border-radius:14px;border:1.5px dashed var(--line);
+  width:100%;aspect-ratio:16/10;border-radius:14px;border:1.5px dashed var(--line);
   display:grid;place-items:center;color:var(--muted);font-size:13.5px;overflow:hidden;position:relative;background:var(--surface2);
 }
 .photo-pick img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -1506,10 +1506,34 @@ async function openOshiForm(id){
 }
 function setPickPreview(url){
   const pick = $('#photo-pick');
-  pick.querySelectorAll('img').forEach(i => i.remove());
-  const img = document.createElement('img'); img.src = url; img.alt = '';
-  pick.prepend(img);
-  $('#photo-pick-hint').style.display = 'none';
+  pick.querySelectorAll('img, .ph-frame').forEach(i => i.remove());
+  if(url){
+    const holder = document.createElement('div');
+    holder.className = 'pick-holder';
+    holder.style.cssText = 'position:absolute;inset:0;border-radius:14px;overflow:hidden';
+    pick.prepend(holder);
+    // 一時的にキーを使わず dataURL を直接描画するため、簡易に frame を構築
+    renderPhotoFromUrl(holder, url, pendingPhotoTransform);
+    $('#photo-pick-hint').style.display = 'none';
+  } else {
+    $('#photo-pick-hint').style.display = '';
+  }
+}
+// dataURL から変形付きで描画(プレビュー用)
+function renderPhotoFromUrl(container, url, transform){
+  const t = normTransform(transform);
+  const frame = document.createElement('div');
+  frame.className = 'ph-frame';
+  const img = document.createElement('img');
+  img.src = url; img.alt = '';
+  img.className = t.fit === 'contain' ? 'fit-contain' : 'fit-cover';
+  frame.appendChild(img);
+  container.innerHTML = '';
+  container.appendChild(frame);
+  requestAnimationFrame(() => {
+    const w = frame.clientWidth || 1;
+    img.style.transform = `translate(calc(-50% + ${t.nx*w}px), calc(-50% + ${t.ny*w}px)) scale(${t.scale})`;
+  });
 }
 $('#f-photo').addEventListener('change', async e => {
   const file = e.target.files[0];
@@ -1525,12 +1549,16 @@ $('#f-photo').addEventListener('change', async e => {
 $('#f-photo-adjust').addEventListener('click', async () => {
   let url = pendingPhoto;
   if(url === undefined || url === null){
-    // 既存写真を使用
     const o = editingOshiId ? state.oshis.find(x => x.id === editingOshiId) : null;
     if(o?.photoKey) url = await photoGet(o.photoKey);
   }
   if(!url){ toast('先に写真を選んでください'); return; }
-  openAdjust(url, pendingPhotoTransform, { ar: 'hero', onSave: (t) => { pendingPhotoTransform = t; } });
+  openAdjust(url, pendingPhotoTransform, { ar: 'hero', onSave: (t) => {
+    pendingPhotoTransform = t;
+    // プレビューに即反映
+    const holder = $('#photo-pick .pick-holder');
+    if(holder) renderPhotoFromUrl(holder, url, t);
+  }});
 });
 
 $('#btn-save-oshi').addEventListener('click', async () => {
