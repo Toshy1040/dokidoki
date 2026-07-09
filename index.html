@@ -330,12 +330,21 @@ a{color:inherit}
   position:relative;width:100%;aspect-ratio:1;border-radius:18px;overflow:hidden;background:#000;
   border:1px solid var(--line);touch-action:none;user-select:none;
 }
-.adjust-stage.ar-hero{aspect-ratio:16/10}
-.adjust-stage img{position:absolute;top:50%;left:50%;will-change:transform;pointer-events:none;-webkit-user-drag:none}
-.adjust-stage .grid-guide{position:absolute;inset:0;pointer-events:none;
-  background-image:linear-gradient(rgba(255,255,255,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.18) 1px,transparent 1px);
-  background-size:33.33% 33.33%;opacity:0;transition:opacity .2s}
-.adjust-stage.dragging .grid-guide{opacity:1}
+/* 画像(1枚・全体表示、クロップ枠でクリップしない) */
+.adjust-stage #adjust-img{position:absolute;top:50%;left:50%;will-change:transform;pointer-events:none;-webkit-user-drag:none}
+#adjust-img-dim{display:none} /* 旧2枚方式は不使用 */
+/* 穴あき暗幕: クロップ窓の外だけを暗くする */
+.crop-mask{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;
+  box-shadow:0 0 0 2000px rgba(0,0,0,.55);border-radius:3px;outline:2px solid rgba(255,255,255,.92)}
+.adjust-stage .crop-mask{width:76%;aspect-ratio:1}
+.adjust-stage.ar-hero .crop-mask{width:88%;aspect-ratio:16/10}
+/* 三分割ガイド */
+.crop-guide{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);pointer-events:none;opacity:0;transition:opacity .2s;
+  background-image:linear-gradient(rgba(255,255,255,.4) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.4) 1px,transparent 1px);
+  background-size:33.33% 33.33%}
+.adjust-stage .crop-guide{width:76%;aspect-ratio:1}
+.adjust-stage.ar-hero .crop-guide{width:88%;aspect-ratio:16/10}
+.adjust-stage.dragging .crop-guide{opacity:1}
 .adjust-controls{display:flex;flex-direction:column;gap:12px}
 .fit-toggle{display:flex;gap:8px}
 .fit-toggle button{flex:1;padding:10px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);color:var(--muted);font-size:13.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px}
@@ -629,7 +638,8 @@ a{color:inherit}
   <div class="adjust-panel" role="dialog" aria-modal="true">
     <div class="adjust-stage" id="adjust-stage">
       <img id="adjust-img" alt="調整中の写真">
-      <div class="grid-guide"></div>
+      <div class="crop-mask"></div>
+      <div class="crop-guide"></div>
     </div>
     <div class="adjust-controls">
       <div class="fit-toggle" id="fit-toggle">
@@ -762,29 +772,45 @@ async function renderPhotoInto(container, key, transform, altText){
 }
 
 /* ---------- adjust modal ---------- */
-let adjustState = null; // { url, t:{scale,nx,ny,fit}, onSave }
+let adjustState = null; // { url, t:{scale,nx,ny,fit}, onSave, natW, natH }
 function openAdjust(url, transform, { ar = 'square', onSave } = {}){
   const stage = $('#adjust-stage');
   stage.classList.toggle('ar-hero', ar === 'hero');
   const t = normTransform(transform);
-  adjustState = { url, t: { ...t }, onSave };
-  $('#adjust-img').src = url;
-  applyAdjustImg();
-  document.querySelectorAll('#fit-toggle button').forEach(b => b.classList.toggle('on', b.dataset.fit === t.fit));
-  updateZoomUI();
-  $('#ov-adjust').classList.add('show');
-}
-function adjustStageW(){ return $('#adjust-stage').clientWidth || 1; }
-function applyAdjustImg(){
+  adjustState = { url, t: { ...t }, onSave, natW: 0, natH: 0 };
   const img = $('#adjust-img');
+  document.querySelectorAll('#fit-toggle button').forEach(b => b.classList.toggle('on', b.dataset.fit === t.fit));
+  $('#ov-adjust').classList.add('show');
+  // 自然サイズを取得してから配置
+  const probe = new Image();
+  probe.onload = () => {
+    adjustState.natW = probe.naturalWidth || 1;
+    adjustState.natH = probe.naturalHeight || 1;
+    img.src = url;
+    requestAnimationFrame(() => { applyAdjustImg(); updateZoomUI(); });
+  };
+  probe.onerror = () => { adjustState.natW = 1; adjustState.natH = 1; img.src = url; requestAnimationFrame(() => { applyAdjustImg(); updateZoomUI(); }); };
+  probe.src = url;
+}
+function cropRect(){ const c = $('#adjust-stage .crop-mask'); return { w: c.clientWidth || 1, h: c.clientHeight || 1 }; }
+function applyAdjustImg(){
   const t = adjustState.t;
-  const contain = t.fit === 'contain';
-  img.style.maxWidth = contain ? '100%' : '';
-  img.style.maxHeight = contain ? '100%' : '';
-  img.style.width = contain ? 'auto' : '100%';
-  img.style.height = contain ? 'auto' : '100%';
-  img.style.objectFit = contain ? 'contain' : 'cover';
-  const w = adjustStageW();
+  const img = $('#adjust-img');
+  const { w, h } = cropRect();
+  const nW = adjustState.natW || 1, nH = adjustState.natH || 1;
+  let baseW, baseH;
+  if(t.fit === 'contain'){
+    // クロップ窓に収まる最大サイズ(全体表示)
+    const s = Math.min(w / nW, h / nH);
+    baseW = nW * s; baseH = nH * s;
+  } else {
+    // クロップ窓をちょうど覆う最小サイズ(はみ出しは見える)
+    const s = Math.max(w / nW, h / nH);
+    baseW = nW * s; baseH = nH * s;
+  }
+  img.style.width = baseW + 'px';
+  img.style.height = baseH + 'px';
+  img.style.objectFit = 'fill';
   const px = t.nx * w, py = t.ny * w;
   img.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px)) scale(${t.scale})`;
 }
@@ -796,7 +822,7 @@ function updateZoomUI(){
   $('#zoom-row').style.opacity = zr.disabled ? '.4' : '1';
   $('#adjust-hint').textContent = t.fit === 'contain'
     ? '写真全体を表示します(余白は黒背景)'
-    : 'ドラッグで位置、ピンチかスライダーで拡大';
+    : 'ドラッグで位置、ピンチで拡大。明るい枠が切り取り範囲';
 }
 
 document.querySelectorAll('#fit-toggle button').forEach(b => {
@@ -832,7 +858,7 @@ $('#zoom-range').addEventListener('input', e => {
   stage.addEventListener('pointermove', e => {
     if(!adjustState || adjustState.t.fit === 'contain' || !pts.has(e.pointerId)) return;
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    const w = adjustStageW();
+    const w = cropRect().w;
     if(pts.size >= 2){
       const d = pinchDist();
       if(base.dist > 0) adjustState.t.scale = Math.min(4, Math.max(1, base.scale * (d / base.dist)));
