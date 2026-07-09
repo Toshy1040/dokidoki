@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d0a16">
+<meta name="description" content="推しと、ときめく毎日を。推し活管理アプリ Doki Doki">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Doki Doki">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Doki Doki — 推しと、ときめく毎日を。</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0a16;
+  --surface:#181226;
+  --surface2:#221a35;
+  --line:rgba(255,255,255,.09);
+  --text:#f3eefa;
+  --muted:#9c92b4;
+  --gold:#e8c87a;
+  --danger:#ff6b81;
+  --oshi:#ff8c42;
+  --radius:18px;
+  --disp:'Kaisei Decol',serif;
+  --body:'Zen Kaku Gothic New',sans-serif;
+  --num:'Outfit',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  background-image:
+    radial-gradient(60% 40% at 80% -5%, rgba(155,93,229,.14), transparent 70%),
+    radial-gradient(50% 35% at 10% 105%, rgba(255,140,66,.10), transparent 70%);
+  background-attachment:fixed;
+  color:var(--text);
+  font-family:var(--body);
+  line-height:1.6;
+  min-height:100dvh;
+}
+button{font-family:var(--body);cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:var(--body);font-size:16px}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:6px}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+
+/* ---------- layout ---------- */
+.view{display:none;max-width:560px;margin:0 auto;padding:0 18px calc(96px + env(safe-area-inset-bottom))}
+.view.active{display:block;animation:fade .28s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ---------- home ---------- */
+.app-head{padding:34px 2px 20px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.app-title{font-family:var(--disp);font-size:34px;font-weight:700;letter-spacing:.02em;line-height:1.1}
+.app-title .dot{color:var(--gold)}
+.app-sub{color:var(--muted);font-size:12.5px;margin-top:6px;letter-spacing:.06em}
+.icon-btn{width:40px;height:40px;border-radius:12px;background:var(--surface);border:1px solid var(--line);display:grid;place-items:center;font-size:17px;color:var(--muted);flex:none}
+.icon-btn:active{transform:scale(.95)}
+
+.storage-note{background:rgba(232,200,122,.09);border:1px solid rgba(232,200,122,.3);color:var(--gold);font-size:12.5px;border-radius:12px;padding:10px 14px;margin-bottom:16px;display:none}
+.storage-note.show{display:block}
+
+.oshi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.oshi-card{
+  position:relative;aspect-ratio:3/4;border-radius:20px;overflow:hidden;
+  background:var(--surface);text-align:left;padding:0;width:100%;
+  border:1px solid color-mix(in srgb, var(--c) 26%, rgba(255,255,255,.06));
+  box-shadow:
+    0 14px 34px -14px color-mix(in srgb, var(--c) 45%, transparent),
+    0 0 0 .5px rgba(255,255,255,.04) inset;
+  transition:transform .18s ease, box-shadow .25s ease;
+}
+.oshi-card:active{transform:scale(.97)}
+.oshi-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.oshi-card .noimg{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--disp);font-size:44px;color:color-mix(in srgb, var(--c) 75%, white);background:linear-gradient(160deg, color-mix(in srgb, var(--c) 26%, var(--surface)), var(--surface))}
+.oshi-card .veil{position:absolute;inset:0;background:linear-gradient(to top, rgba(9,6,16,.92) 0%, rgba(9,6,16,.34) 44%, transparent 68%)}
+.oshi-card .meta{position:absolute;left:0;right:0;bottom:0;padding:13px 14px}
+.oshi-card .name{font-family:var(--disp);font-size:17.5px;font-weight:700;line-height:1.3;letter-spacing:.01em;text-shadow:0 1px 10px rgba(0,0,0,.55)}
+.oshi-card .tag-row{display:flex;align-items:center;gap:6px;margin-top:7px;flex-wrap:wrap}
+.chip{font-size:10px;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.08);backdrop-filter:blur(4px);letter-spacing:.05em}
+
+.empty{
+  border:1.5px dashed var(--line);border-radius:var(--radius);
+  padding:56px 24px;text-align:center;color:var(--muted);margin-top:14px;
+}
+.empty .em-title{font-family:var(--disp);font-size:20px;color:var(--text);margin-bottom:8px}
+.empty p{font-size:13.5px;margin-bottom:22px}
+
+.fab{
+  position:fixed;right:18px;bottom:calc(20px + env(safe-area-inset-bottom));z-index:30;
+  height:54px;padding:0 22px;border-radius:99px;display:flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,#ff8c42,#ff5e7e);color:#1a0f08;font-weight:700;font-size:15px;
+  box-shadow:0 8px 28px rgba(255,110,90,.4);
+}
+.fab:active{transform:scale(.96)}
+
+/* ---------- detail ---------- */
+.hero{position:relative;margin:0 -18px;height:40vh;min-height:280px;max-height:420px;overflow:hidden}
+.hero img{width:100%;height:100%;object-fit:cover}
+.hero .noimg{width:100%;height:100%;display:grid;place-items:center;font-family:var(--disp);font-size:88px;color:color-mix(in srgb, var(--oshi) 75%, white);background:linear-gradient(160deg, color-mix(in srgb, var(--oshi) 26%, var(--surface)), var(--bg))}
+.hero .veil{position:absolute;inset:0;background:linear-gradient(to top, var(--bg) 2%, rgba(13,10,22,.45) 34%, transparent 62%)}
+.hero-nav{position:absolute;top:calc(14px + env(safe-area-inset-top));left:14px;right:14px;display:flex;justify-content:space-between}
+.hero-btn{width:40px;height:40px;border-radius:12px;background:rgba(13,10,22,.55);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);display:grid;place-items:center;font-size:16px}
+.hero-meta{position:absolute;left:18px;right:18px;bottom:14px}
+.hero-name{font-family:var(--disp);font-size:34px;font-weight:700;line-height:1.15;text-shadow:0 2px 14px rgba(0,0,0,.55)}
+.hero-tags{display:flex;align-items:center;gap:8px;margin-top:9px;flex-wrap:wrap}
+.color-dot{width:11px;height:11px;border-radius:99px;background:var(--oshi);box-shadow:0 0 10px var(--oshi);flex:none}
+.hero-cat{font-size:12.5px;color:#d9d2e8;letter-spacing:.05em}
+
+.links-row{display:flex;gap:9px;overflow-x:auto;padding:16px 2px 4px;scrollbar-width:none}
+.links-row::-webkit-scrollbar{display:none}
+.link-pill{
+  flex:none;display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:99px;font-size:13.5px;
+  background:var(--surface);border:1px solid var(--line);text-decoration:none;color:var(--text);
+}
+.link-pill:active{background:var(--surface2)}
+.link-pill svg{width:15px;height:15px;fill:color-mix(in srgb, var(--oshi) 72%, white);flex:none}
+
+.memo-quote{
+  margin-top:16px;padding:13px 16px;font-size:13.5px;color:#d9d2e8;line-height:1.75;
+  background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--oshi);
+  border-radius:6px 14px 14px 6px;white-space:pre-wrap;word-break:break-word;
+}
+
+.fchips{display:flex;gap:8px;overflow-x:auto;padding:0 2px 12px;scrollbar-width:none}
+.fchips::-webkit-scrollbar{display:none}
+.fchip{flex:none;font-size:12px;padding:6px 14px;border-radius:99px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.fchip.on{
+  background:color-mix(in srgb, var(--oshi) 20%, var(--surface));
+  border-color:color-mix(in srgb, var(--oshi) 50%, transparent);
+  color:color-mix(in srgb, var(--oshi) 75%, white);font-weight:700;
+}
+.opt-chips{display:flex;flex-wrap:wrap;gap:8px}
+
+/* ---------- gallery ---------- */
+.gallery-wrap{margin-top:18px}
+.gallery-label{font-size:11.5px;color:var(--muted);letter-spacing:.08em;margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.gallery-label::before{content:"";width:5px;height:5px;border-radius:99px;background:var(--oshi);box-shadow:0 0 8px var(--oshi)}
+.gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.g-slot{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:var(--surface2);border:1.5px solid var(--line);display:grid;place-items:center;width:100%;padding:0;cursor:pointer;transition:background .2s,border-color .2s}
+.g-slot .g-cross{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.g-slot .g-cross line{stroke:rgba(255,255,255,.08);stroke-width:1}
+.g-slot:active{background:var(--surface)}
+.g-slot.filled{border:1px solid color-mix(in srgb, var(--oshi) 30%, rgba(255,255,255,.06));box-shadow:0 8px 20px -10px color-mix(in srgb, var(--oshi) 40%, transparent)}
+.g-slot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.g-slot input{position:absolute;inset:0;opacity:0;cursor:pointer}
+
+/* ---------- date picker ---------- */
+.overlay.stack{z-index:70}
+.dp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.dp-title{font-family:var(--num);font-size:16.5px;font-weight:600;letter-spacing:.02em}
+.dp-nav{display:flex;gap:6px}
+.dp-btn{width:36px;height:36px;border-radius:11px;background:var(--surface2);border:1px solid var(--line);color:var(--muted);font-size:13px;display:grid;place-items:center}
+.dp-btn:active{background:var(--surface)}
+.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;margin-top:10px}
+.dp-w{font-size:11px;color:var(--muted);padding:5px 0;letter-spacing:.05em}
+.dp-d{aspect-ratio:1;border-radius:10px;font-family:var(--num);font-size:14px;color:var(--text);display:grid;place-items:center}
+.dp-d:active{background:var(--surface2)}
+.dp-d.today{border:1px solid color-mix(in srgb, var(--oshi) 55%, transparent)}
+.dp-d.sel{background:var(--oshi);color:#140d08;font-weight:700;box-shadow:0 0 14px color-mix(in srgb, var(--oshi) 45%, transparent)}
+.dp-foot{display:flex;justify-content:space-between;margin-top:14px}
+.dp-link{font-size:13.5px;color:var(--muted);padding:8px 12px;border-radius:10px}
+.dp-link:active{background:var(--surface2)}
+.f-date{text-align:left;cursor:pointer}
+.f-date.placeholder{color:var(--muted)}
+
+/* ---------- lightbox ---------- */
+#ov-photo{align-items:center;padding:20px}
+.lightbox{display:grid;gap:16px;justify-items:center;width:100%;max-width:560px;animation:fade .2s ease}
+.lightbox img{max-width:100%;max-height:64dvh;border-radius:18px;border:1px solid var(--line);box-shadow:0 24px 70px rgba(0,0,0,.55)}
+.lb-actions{display:flex;gap:10px}
+.lb-btn{padding:11px 26px;border-radius:99px;font-size:14px;background:var(--surface);border:1px solid var(--line)}
+.lb-btn.del{color:var(--danger);border-color:rgba(255,107,129,.35)}
+
+.section{margin-top:26px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:11px}
+.sec-title{font-family:var(--disp);font-size:19px;font-weight:700}
+.sec-title::after{content:"";display:inline-block;width:26px;height:2px;background:var(--oshi);margin-left:10px;vertical-align:middle;border-radius:2px;box-shadow:0 0 8px var(--oshi)}
+.sec-add{font-size:13px;color:color-mix(in srgb, var(--oshi) 72%, white);font-weight:700;padding:6px 10px;border-radius:10px}
+.sec-add:active{background:var(--surface)}
+
+.item{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:13px 15px;margin-bottom:9px;display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;
+}
+.item:active{background:var(--surface2)}
+.item .body{flex:1;min-width:0}
+.item .t{font-weight:700;font-size:14.5px;line-height:1.4;word-break:break-word}
+.item .s{font-size:12px;color:var(--muted);margin-top:3px;word-break:break-word}
+.item .date{font-family:var(--num);font-size:12px;color:var(--muted);flex:none;padding-top:2px}
+.wtype{flex:none;font-size:10.5px;padding:3px 9px;border-radius:99px;margin-top:1px;
+  background:color-mix(in srgb, var(--oshi) 20%, transparent);
+  border:1px solid color-mix(in srgb, var(--oshi) 42%, transparent);
+  color:color-mix(in srgb, var(--oshi) 75%, white);letter-spacing:.03em}
+.item .link-mark{font-size:11px;color:var(--muted);flex:none;padding-top:3px}
+.sub-empty{color:var(--muted);font-size:13px;padding:16px 4px;text-align:center;border:1.5px dashed var(--line);border-radius:14px}
+
+.danger-zone{margin-top:40px;text-align:center}
+.danger-btn{color:var(--danger);font-size:13px;padding:10px 18px;border-radius:12px;border:1px solid rgba(255,107,129,.3)}
+
+/* ---------- modal / sheet ---------- */
+.overlay{position:fixed;inset:0;background:rgba(5,3,10,.66);backdrop-filter:blur(3px);z-index:50;display:none;align-items:flex-end;justify-content:center}
+.overlay.show{display:flex}
+.sheet{
+  background:rgba(22,16,34,.96);backdrop-filter:blur(14px);border:1px solid var(--line);border-bottom:none;
+  border-radius:26px 26px 0 0;width:100%;max-width:560px;max-height:88dvh;overflow-y:auto;
+  padding:10px 20px calc(26px + env(safe-area-inset-bottom));
+  animation:up .22s ease;
+}
+@keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+.grab{width:38px;height:4px;border-radius:99px;background:var(--line);margin:4px auto 14px}
+.sheet h2{font-family:var(--disp);font-size:20px;margin-bottom:16px}
+.f-group{margin-bottom:15px}
+.f-label{display:block;font-size:12px;color:var(--muted);letter-spacing:.06em;margin-bottom:6px}
+.f-input,.f-select,.f-textarea{
+  width:100%;background:var(--surface2);border:1px solid var(--line);border-radius:12px;
+  color:var(--text);padding:11px 14px;
+}
+.f-input:focus,.f-select:focus,.f-textarea:focus{outline:none;border-color:color-mix(in srgb, var(--oshi) 60%, transparent)}
+.f-textarea{min-height:74px;resize:vertical}
+.f-row{display:flex;gap:10px}
+.f-row .f-group{flex:1}
+.photo-pick{
+  width:100%;aspect-ratio:16/9;border-radius:14px;border:1.5px dashed var(--line);
+  display:grid;place-items:center;color:var(--muted);font-size:13.5px;overflow:hidden;position:relative;background:var(--surface2);
+}
+.photo-pick img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.photo-pick input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.sheet-actions{display:flex;gap:10px;margin-top:22px}
+.btn{flex:1;padding:13px;border-radius:14px;font-size:15px;font-weight:700;text-align:center}
+.btn-primary{background:linear-gradient(135deg, color-mix(in srgb, var(--oshi) 88%, white), var(--oshi));color:#140d08;box-shadow:0 6px 20px color-mix(in srgb, var(--oshi) 35%, transparent)}
+.btn-ghost{background:var(--surface2);border:1px solid var(--line);color:var(--muted)}
+.btn-danger-line{color:var(--danger);font-size:13px;width:100%;padding:10px;margin-top:8px}
+
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%) translateY(16px);bottom:calc(88px + env(safe-area-inset-bottom));
+  background:#241c39;border:1px solid var(--line);color:var(--text);font-size:13.5px;
+  padding:10px 20px;border-radius:99px;z-index:80;opacity:0;pointer-events:none;transition:all .25s ease;box-shadow:0 8px 24px rgba(0,0,0,.4)
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.menu-list{padding:4px 0 8px}
+.menu-list button{display:flex;width:100%;text-align:left;padding:13px 6px;border-bottom:1px solid var(--line);font-size:14.5px;gap:10px;align-items:center}
+.menu-list button:last-child{border-bottom:none}
+.menu-list .mi{width:24px;text-align:center}
+</style>
+</head>
+<body>
+<!-- ================= HOME ================= -->
+<main id="view-home" class="view active">
+  <header class="app-head">
+    <div>
+      <h1 class="app-title">Doki Doki<span class="dot">.</span></h1>
+      <p class="app-sub">推しと、ときめく毎日を。</p>
+    </div>
+    <button class="icon-btn" id="btn-menu" aria-label="設定メニュー">⋯</button>
+  </header>
+  <div class="storage-note" id="storage-note">このプレビュー環境ではデータが保存されません。GitHub Pages などに置くと端末に保存されます。</div>
+  <div class="oshi-grid" id="oshi-grid"></div>
+  <div class="empty" id="empty-state" style="display:none">
+    <div class="em-title">最初の推しを迎えましょう</div>
+    <p>写真・記念日・作品を、<br>ひとつの場所にそっとまとめられます。</p>
+  </div>
+</main>
+
+<!-- ================= DETAIL ================= -->
+<main id="view-detail" class="view">
+  <div class="hero" id="d-hero">
+    <div class="hero-nav">
+      <button class="hero-btn" id="btn-back" aria-label="戻る">←</button>
+      <button class="hero-btn" id="btn-edit" aria-label="編集">✎</button>
+    </div>
+    <div id="d-photo-wrap"></div>
+    <div class="veil"></div>
+    <div class="hero-meta">
+      <div class="hero-name" id="d-name"></div>
+      <div class="hero-tags">
+        <span class="color-dot"></span>
+        <span class="hero-cat" id="d-cat"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="gallery-wrap">
+    <div class="gallery-label">コレクション</div>
+    <div class="gallery" id="d-gallery"></div>
+  </div>
+  <div id="d-bday"></div>
+  <div class="links-row" id="d-links"></div>
+  <div id="d-memo"></div>
+
+  <section class="section">
+    <div class="sec-head">
+      <h2 class="sec-title">作品・リリース</h2>
+      <button class="sec-add" id="btn-add-work">＋ 追加</button>
+    </div>
+    <div class="fchips" id="w-filter"></div>
+    <div id="d-works"></div>
+  </section>
+
+  <section class="section">
+    <div class="sec-head">
+      <h2 class="sec-title">活動メモ</h2>
+      <button class="sec-add" id="btn-add-log">＋ 追加</button>
+    </div>
+    <div id="d-logs"></div>
+  </section>
+
+  <div class="danger-zone">
+    <button class="danger-btn" id="btn-del-oshi">この推しを削除する</button>
+  </div>
+</main>
+
+<button class="fab" id="fab-add">＋ 推しを追加</button>
+
+<!-- ================= OSHI FORM ================= -->
+<div class="overlay" id="ov-oshi">
+  <div class="sheet" role="dialog" aria-modal="true">
+    <div class="grab"></div>
+    <h2 id="oshi-form-title">推しを追加</h2>
+    <div class="f-group">
+      <label class="f-label" for="f-name">名前 *</label>
+      <input class="f-input" id="f-name" placeholder="推しの名前">
+    </div>
+    <div class="f-group">
+      <span class="f-label">写真</span>
+      <label class="photo-pick" id="photo-pick">
+        <span id="photo-pick-hint">タップして写真を選ぶ</span>
+        <input type="file" accept="image/*" id="f-photo">
+      </label>
+    </div>
+    <div class="f-group">
+      <span class="f-label">コレクション</span>
+      <div class="gallery" id="f-gallery"></div>
+    </div>
+    <div class="f-group">
+      <span class="f-label">ジャンル</span>
+      <div class="opt-chips" id="f-cat"></div>
+    </div>
+    <div class="f-group">
+      <span class="f-label">誕生日</span>
+      <button type="button" class="f-input f-date placeholder" id="f-bday" data-iso="">日付を選ぶ</button>
+    </div>
+    <div class="f-group">
+      <label class="f-label" for="f-official">公式サイト URL</label>
+      <input class="f-input" type="url" id="f-official" placeholder="https://">
+    </div>
+    <div class="f-row">
+      <div class="f-group">
+        <label class="f-label" for="f-x">X URL</label>
+        <input class="f-input" type="url" id="f-x" placeholder="https://x.com/">
+      </div>
+      <div class="f-group">
+        <label class="f-label" for="f-yt">YouTube URL</label>
+        <input class="f-input" type="url" id="f-yt" placeholder="https://">
+      </div>
+    </div>
+    <div class="f-row">
+      <div class="f-group">
+        <label class="f-label" for="f-ig">Instagram URL</label>
+        <input class="f-input" type="url" id="f-ig" placeholder="https://">
+      </div>
+      <div class="f-group">
+        <label class="f-label" for="f-other">その他 URL</label>
+        <input class="f-input" type="url" id="f-other" placeholder="https://">
+      </div>
+    </div>
+    <div class="f-group">
+      <label class="f-label" for="f-memo">メモ</label>
+      <textarea class="f-textarea" id="f-memo" placeholder="推しポイント、好きなところ…"></textarea>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" data-close>キャンセル</button>
+      <button class="btn btn-primary" id="btn-save-oshi">保存する</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= WORK FORM ================= -->
+<div class="overlay" id="ov-work">
+  <div class="sheet" role="dialog" aria-modal="true">
+    <div class="grab"></div>
+    <h2 id="work-form-title">作品を追加</h2>
+    <div class="f-group">
+      <label class="f-label" for="w-title">タイトル *</label>
+      <input class="f-input" id="w-title" placeholder="作品名・商品名">
+    </div>
+    <div class="f-group">
+      <span class="f-label">種類</span>
+      <div class="opt-chips" id="w-type"></div>
+    </div>
+    <div class="f-group">
+      <span class="f-label">発売・公開日</span>
+      <button type="button" class="f-input f-date placeholder" id="w-date" data-iso="">日付を選ぶ</button>
+    </div>
+    <div class="f-group">
+      <label class="f-label" for="w-url">URL(商品ページなど)</label>
+      <input class="f-input" type="url" id="w-url" placeholder="https://">
+    </div>
+    <div class="f-group">
+      <label class="f-label" for="w-memo">メモ</label>
+      <textarea class="f-textarea" id="w-memo" placeholder="感想、購入済み、予約中…"></textarea>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" data-close>キャンセル</button>
+      <button class="btn btn-primary" id="btn-save-work">保存する</button>
+    </div>
+    <button class="btn-danger-line" id="btn-del-work" style="display:none">この作品を削除</button>
+  </div>
+</div>
+
+<!-- ================= LOG FORM ================= -->
+<div class="overlay" id="ov-log">
+  <div class="sheet" role="dialog" aria-modal="true">
+    <div class="grab"></div>
+    <h2 id="log-form-title">活動メモを追加</h2>
+    <div class="f-group">
+      <span class="f-label">日付</span>
+      <button type="button" class="f-input f-date" id="l-date" data-iso="">日付を選ぶ</button>
+    </div>
+    <div class="f-group">
+      <label class="f-label" for="l-text">内容 *</label>
+      <textarea class="f-textarea" id="l-text" placeholder="新曲発表、雑誌掲載、配信の感想など"></textarea>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" data-close>キャンセル</button>
+      <button class="btn btn-primary" id="btn-save-log">保存する</button>
+    </div>
+    <button class="btn-danger-line" id="btn-del-log" style="display:none">このメモを削除</button>
+  </div>
+</div>
+
+<!-- ================= MENU ================= -->
+<div class="overlay" id="ov-menu">
+  <div class="sheet" role="dialog" aria-modal="true">
+    <div class="grab"></div>
+    <h2>設定</h2>
+    <div class="menu-list">
+      <button id="btn-export"><span class="mi">↓</span>バックアップを書き出す(JSON)</button>
+      <button id="btn-import"><span class="mi">↑</span>バックアップを読み込む</button>
+    </div>
+    <input type="file" accept="application/json" id="f-import" style="display:none">
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" data-close>閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= DATE PICKER ================= -->
+<div class="overlay stack" id="ov-date">
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="日付を選ぶ">
+    <div class="grab"></div>
+    <div class="dp-head">
+      <div class="dp-nav">
+        <button type="button" class="dp-btn" id="dp-py" aria-label="前の年">«</button>
+        <button type="button" class="dp-btn" id="dp-pm" aria-label="前の月">‹</button>
+      </div>
+      <div class="dp-title" id="dp-title"></div>
+      <div class="dp-nav">
+        <button type="button" class="dp-btn" id="dp-nm" aria-label="次の月">›</button>
+        <button type="button" class="dp-btn" id="dp-ny" aria-label="次の年">»</button>
+      </div>
+    </div>
+    <div class="dp-grid" id="dp-grid"></div>
+    <div class="dp-foot">
+      <button type="button" class="dp-link" id="dp-clear">クリア</button>
+      <button type="button" class="dp-link" id="dp-today">今日</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= LIGHTBOX ================= -->
+<div class="overlay stack" id="ov-photo">
+  <div class="lightbox" role="dialog" aria-modal="true">
+    <img id="lb-img" alt="推しの写真">
+    <div class="lb-actions">
+      <button class="lb-btn del" id="lb-del">削除</button>
+      <button class="lb-btn" id="lb-close">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script>
+/* ============================================================
+   Doki Doki — 推し活管理 v1
+   データ: localStorage(JSON) + IndexedDB(写真)
+   両方使えない環境(プレビュー等)ではメモリ保持にフォールバック
+============================================================ */
+const LS_KEY = 'tokimeku-v1';
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- storage layer ---------- */
+let memoryMode = false;
+let memStore = null;
+function loadData(){
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : { oshis: [] };
+  } catch(e){
+    memoryMode = true;
+    if(!memStore) memStore = { oshis: [] };
+    return memStore;
+  }
+}
+function saveData(){
+  if(memoryMode){ memStore = state; return; }
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+  catch(e){ memoryMode = true; memStore = state; showStorageNote(); }
+}
+function showStorageNote(){ $('#storage-note').classList.add('show'); }
+
+/* ---------- photo store (IndexedDB) ---------- */
+const memPhotos = new Map();
+let idbFailed = false;
+const dbPromise = new Promise((resolve) => {
+  try {
+    const req = indexedDB.open('tokimeku-photos', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('photos');
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = () => { idbFailed = true; resolve(null); };
+  } catch(e){ idbFailed = true; resolve(null); }
+});
+async function photoSet(key, dataURL){
+  const db = await dbPromise;
+  if(!db){ memPhotos.set(key, dataURL); return; }
+  return new Promise((res) => {
+    const tx = db.transaction('photos','readwrite');
+    tx.objectStore('photos').put(dataURL, key);
+    tx.oncomplete = res;
+    tx.onerror = () => { memPhotos.set(key, dataURL); res(); };
+  });
+}
+async function photoGet(key){
+  if(!key) return null;
+  if(memPhotos.has(key)) return memPhotos.get(key);
+  const db = await dbPromise;
+  if(!db) return null;
+  return new Promise((res) => {
+    const rq = db.transaction('photos').objectStore('photos').get(key);
+    rq.onsuccess = () => res(rq.result || null);
+    rq.onerror = () => res(null);
+  });
+}
+async function photoDel(key){
+  if(!key) return;
+  memPhotos.delete(key);
+  const db = await dbPromise;
+  if(!db) return;
+  db.transaction('photos','readwrite').objectStore('photos').delete(key);
+}
+
+/* ---------- image compress ---------- */
+function compressImage(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1200;
+        let { width:w, height:h } = img;
+        if(Math.max(w,h) > MAX){ const r = MAX/Math.max(w,h); w = Math.round(w*r); h = Math.round(h*r); }
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(cv.toDataURL('image/jpeg', 0.84));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/* ---------- state ---------- */
+let state = loadData();
+if(memoryMode) document.addEventListener('DOMContentLoaded', showStorageNote);
+let currentOshiId = null;
+let editingOshiId = null;
+let editingWorkId = null;
+let editingLogId = null;
+let pendingPhoto = undefined; // undefined=変更なし / string=新写真 / null=なし
+
+const OSHI_COLOR = '#ff8c42'; // 統一アクセントカラー(オレンジ)
+
+/* ---------- date utils ---------- */
+const fmtDate = (iso) => {
+  if(!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return `${y}.${m}.${d}`;
+};
+
+/* ---------- chip pickers (ネイティブselectの代替) ---------- */
+const CATS = ['アイドル','アーティスト','声優','VTuber','俳優','アニメ・キャラクター','スポーツ選手','作家・クリエイター','その他','推し'];
+const WTYPES = ['本・雑誌','CD・音楽','映像・出演','ライブ・イベント','グッズ','その他'];
+function chipPicker(sel, options){
+  let value = options[0];
+  const box = $(sel);
+  function render(){
+    box.innerHTML = '';
+    for(const opt of options){
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'fchip' + (opt === value ? ' on' : '');
+      b.textContent = opt;
+      b.addEventListener('click', () => { value = opt; render(); });
+      box.appendChild(b);
+    }
+  }
+  render();
+  return { get: () => value, set: v => { value = options.includes(v) ? v : options[0]; render(); } };
+}
+const catPicker = chipPicker('#f-cat', CATS);
+const wtypePicker = chipPicker('#w-type', WTYPES);
+
+/* ---------- date fields + custom calendar ---------- */
+function setDateField(sel, iso){
+  const el = $(sel);
+  el.dataset.iso = iso || '';
+  el.textContent = iso ? fmtDate(iso) : '日付を選ぶ';
+  el.classList.toggle('placeholder', !iso);
+}
+const getDateField = (sel) => $(sel).dataset.iso || '';
+const todayISO = () => {
+  const t = new Date(); t.setMinutes(t.getMinutes() - t.getTimezoneOffset());
+  return t.toISOString().slice(0,10);
+};
+
+let dpY, dpM, dpSelected = '', dpOnPick = null;
+function openDatePicker(iso, onPick){
+  dpOnPick = onPick;
+  dpSelected = iso || '';
+  const base = iso ? new Date(iso + 'T00:00:00') : new Date();
+  dpY = base.getFullYear(); dpM = base.getMonth();
+  renderDP();
+  $('#ov-date').classList.add('show');
+}
+function renderDP(){
+  $('#dp-title').textContent = `${dpY}年 ${dpM + 1}月`;
+  const grid = $('#dp-grid');
+  grid.innerHTML = '';
+  for(const w of ['日','月','火','水','木','金','土']){
+    const s = document.createElement('span');
+    s.className = 'dp-w'; s.textContent = w;
+    grid.appendChild(s);
+  }
+  const first = new Date(dpY, dpM, 1).getDay();
+  const days = new Date(dpY, dpM + 1, 0).getDate();
+  for(let i = 0; i < first; i++) grid.appendChild(document.createElement('span'));
+  const tISO = todayISO();
+  for(let d = 1; d <= days; d++){
+    const iso = `${dpY}-${String(dpM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'dp-d' + (iso === dpSelected ? ' sel' : '') + (iso === tISO ? ' today' : '');
+    b.textContent = d;
+    b.addEventListener('click', () => { dpOnPick && dpOnPick(iso); closeDP(); });
+    grid.appendChild(b);
+  }
+}
+function closeDP(){ $('#ov-date').classList.remove('show'); }
+$('#dp-pm').addEventListener('click', () => { dpM--; if(dpM < 0){ dpM = 11; dpY--; } renderDP(); });
+$('#dp-nm').addEventListener('click', () => { dpM++; if(dpM > 11){ dpM = 0; dpY++; } renderDP(); });
+$('#dp-py').addEventListener('click', () => { dpY--; renderDP(); });
+$('#dp-ny').addEventListener('click', () => { dpY++; renderDP(); });
+$('#dp-clear').addEventListener('click', () => { dpOnPick && dpOnPick(''); closeDP(); });
+$('#dp-today').addEventListener('click', () => { dpOnPick && dpOnPick(todayISO()); closeDP(); });
+$('#f-bday').addEventListener('click', () => openDatePicker(getDateField('#f-bday'), iso => setDateField('#f-bday', iso)));
+$('#w-date').addEventListener('click', () => openDatePicker(getDateField('#w-date'), iso => setDateField('#w-date', iso)));
+$('#l-date').addEventListener('click', () => openDatePicker(getDateField('#l-date'), iso => setDateField('#l-date', iso)));
+
+/* ---------- views ---------- */
+function show(view){
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  $(view).classList.add('active');
+  $('#fab-add').style.display = (view === '#view-home') ? 'flex' : 'none';
+  window.scrollTo(0,0);
+}
+
+/* ---------- home render ---------- */
+async function renderHome(){
+  const grid = $('#oshi-grid');
+  grid.innerHTML = '';
+  $('#empty-state').style.display = state.oshis.length ? 'none' : 'block';
+  for(const o of state.oshis){
+    const card = document.createElement('button');
+    card.className = 'oshi-card';
+    card.style.setProperty('--c', OSHI_COLOR);
+    card.innerHTML = `
+      <div class="noimg">${esc((o.name||'?').slice(0,1))}</div>
+      <div class="veil"></div>
+      <div class="meta">
+        <div class="name">${esc(o.name)}</div>
+        <div class="tag-row"><span class="chip">${esc(o.category||'')}</span></div>
+      </div>`;
+    card.addEventListener('click', () => openDetail(o.id));
+    grid.appendChild(card);
+    if(o.photoKey){
+      photoGet(o.photoKey).then(url => {
+        if(!url) return;
+        const img = document.createElement('img');
+        img.src = url; img.alt = o.name;
+        card.insertBefore(img, card.querySelector('.veil'));
+      });
+    }
+  }
+}
+
+/* ---------- detail render ---------- */
+async function openDetail(id){
+  currentOshiId = id;
+  const o = state.oshis.find(x => x.id === id);
+  if(!o) return;
+  document.documentElement.style.setProperty('--oshi', OSHI_COLOR);
+  $('#d-name').textContent = o.name;
+  $('#d-cat').textContent = o.category || '';
+
+  const wrap = $('#d-photo-wrap');
+  wrap.innerHTML = `<div class="noimg">${esc((o.name||'?').slice(0,1))}</div>`;
+  if(o.photoKey){
+    const url = await photoGet(o.photoKey);
+    if(url) wrap.innerHTML = `<img src="${url}" alt="${esc(o.name)}">`;
+  }
+
+  // birthday: カウントダウン表示は廃止(入力は保持)
+  $('#d-bday').innerHTML = '';
+
+  // links
+  const ICONS = {
+    official: '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm7.4 9h-3.1a15.6 15.6 0 00-1.5-6A8 8 0 0119.4 11zM12 4.3c.9 1.1 2 3.3 2.3 6.7H9.7c.3-3.4 1.4-5.6 2.3-6.7zM4.6 13h3.1c.2 2.4.7 4.4 1.5 6A8 8 0 014.6 13zm3.1-2H4.6a8 8 0 015.2-6c-.8 1.6-1.3 3.6-1.5 6zm2 2h4.6c-.3 3.4-1.4 5.6-2.3 6.7-.9-1.1-2-3.3-2.3-6.7zm5.1 6c.8-1.6 1.3-3.6 1.5-6h3.1a8 8 0 01-4.6 6z"/></svg>',
+    x: '<svg viewBox="0 0 24 24"><path d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-6.4L6.4 22H3.3l7.3-8.3L1.2 2h6.4l4.4 5.9L18.9 2zm-1.1 18h1.7L7.1 3.9H5.2L17.8 20z"/></svg>',
+    yt: '<svg viewBox="0 0 24 24"><path d="M23 7.2s-.2-1.6-.9-2.3c-.9-.9-1.8-.9-2.3-1C16.6 3.6 12 3.6 12 3.6s-4.6 0-7.8.3c-.5.1-1.4.1-2.3 1C1.2 5.6 1 7.2 1 7.2S.8 9.1.8 11v1.8c0 1.9.2 3.8.2 3.8s.2 1.6.9 2.3c.9.9 2 .9 2.5 1 1.9.2 7.6.3 7.6.3s4.6 0 7.8-.3c.5-.1 1.4-.1 2.3-1 .7-.7.9-2.3.9-2.3s.2-1.9.2-3.8V11c0-1.9-.2-3.8-.2-3.8zM9.8 15V8.4l6.1 3.3L9.8 15z"/></svg>',
+    ig: '<svg viewBox="0 0 24 24"><path d="M12 2.2c3.2 0 3.6 0 4.9.1 1.2.1 1.8.2 2.2.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1 .4 2.2.1 1.3.1 1.7.1 4.9s0 3.6-.1 4.9c-.1 1.2-.2 1.8-.4 2.2-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1 .4-2.2.4-1.3.1-1.7.1-4.9.1s-3.6 0-4.9-.1c-1.2-.1-1.8-.2-2.2-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.8-.9-1.4-.2-.4-.4-1-.4-2.2C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.9c.1-1.2.2-1.8.4-2.2.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1-.4 2.2-.4C8.4 2.2 8.8 2.2 12 2.2zm0 1.8c-3.1 0-3.5 0-4.8.1-1.1.1-1.5.2-1.9.3-.5.2-.8.4-1.1.7-.3.3-.5.6-.7 1.1-.1.4-.3.8-.3 1.9-.1 1.3-.1 1.7-.1 4.8s0 3.5.1 4.8c.1 1.1.2 1.5.3 1.9.2.5.4.8.7 1.1.3.3.6.5 1.1.7.4.1.8.3 1.9.3 1.3.1 1.7.1 4.8.1s3.5 0 4.8-.1c1.1-.1 1.5-.2 1.9-.3.5-.2.8-.4 1.1-.7.3-.3.5-.6.7-1.1.1-.4.3-.8.3-1.9.1-1.3.1-1.7.1-4.8s0-3.5-.1-4.8c-.1-1.1-.2-1.5-.3-1.9-.2-.5-.4-.8-.7-1.1-.3-.3-.6-.5-1.1-.7-.4-.1-.8-.3-1.9-.3-1.3-.1-1.7-.1-4.8-.1zm0 3.1a5 5 0 110 9.9 5 5 0 010-9.9zm0 8.1a3.2 3.2 0 100-6.4 3.2 3.2 0 000 6.4zm6.3-8.3a1.2 1.2 0 11-2.3 0 1.2 1.2 0 012.3 0z"/></svg>',
+    other: '<svg viewBox="0 0 24 24"><path d="M10.6 13.4a1 1 0 001.4 1.4l6-6a3.5 3.5 0 00-5-5l-2.6 2.7a1 1 0 001.4 1.4L14.5 5.3a1.5 1.5 0 012.2 2.1l-6.1 6zm2.8-2.8a1 1 0 00-1.4-1.4l-6 6a3.5 3.5 0 105 5l2.6-2.7a1 1 0 10-1.4-1.4L9.5 18.7a1.5 1.5 0 01-2.2-2.1l6.1-6z"/></svg>',
+  };
+  const L = $('#d-links'); L.innerHTML = '';
+  const defs = [['official','公式'],['x','X'],['yt','YouTube'],['ig','Instagram'],['other','リンク']];
+  let any = false;
+  for(const [k, label] of defs){
+    const url = (o.links||{})[k];
+    if(!url) continue;
+    any = true;
+    const a = document.createElement('a');
+    a.className = 'link-pill'; a.href = url; a.target = '_blank'; a.rel = 'noopener';
+    a.innerHTML = `${ICONS[k]}${label}`;
+    L.appendChild(a);
+  }
+  L.style.display = any ? 'flex' : 'none';
+
+  // memo
+  const M = $('#d-memo');
+  M.innerHTML = o.memo ? `<div class="memo-quote">${esc(o.memo)}</div>` : '';
+
+  renderGallery(o);
+
+  workFilter = 'all';
+  renderWorkFilter(o);
+  renderWorks(o);
+  renderLogs(o);
+
+  if(!$('#view-detail').classList.contains('active')){
+    try { history.pushState({ v:'detail' }, ''); } catch(e){}
+  }
+  show('#view-detail');
+}
+
+window.addEventListener('popstate', () => {
+  if($('#view-detail').classList.contains('active')){
+    closeSheets();
+    currentOshiId = null;
+    show('#view-home'); renderHome();
+  }
+});
+
+let workFilter = 'all';
+function renderWorkFilter(o){
+  const box = $('#w-filter'); box.innerHTML = '';
+  const types = [...new Set((o.works||[]).map(w => w.type).filter(Boolean))];
+  if(types.length < 2){ box.style.display = 'none'; return; }
+  box.style.display = 'flex';
+  const all = ['all', ...types];
+  for(const t of all){
+    const b = document.createElement('button');
+    b.className = 'fchip' + (workFilter === t ? ' on' : '');
+    b.textContent = t === 'all' ? 'すべて' : t;
+    b.addEventListener('click', () => { workFilter = t; renderWorkFilter(o); renderWorks(o); });
+    box.appendChild(b);
+  }
+}
+
+function renderWorks(o){
+  const box = $('#d-works'); box.innerHTML = '';
+  let works = [...(o.works||[])].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  if(workFilter !== 'all') works = works.filter(w => w.type === workFilter);
+  if(!(o.works||[]).length){ box.innerHTML = `<div class="sub-empty">作品や本、CDを記録していきましょう</div>`; return; }
+  if(!works.length){ box.innerHTML = `<div class="sub-empty">この種類の記録はまだありません</div>`; return; }
+  for(const w of works){
+    const el = document.createElement('button');
+    el.className = 'item';
+    el.innerHTML = `<span class="wtype">${esc(w.type||'')}</span>
+      <div class="body"><div class="t">${esc(w.title)}</div>${w.memo ? `<div class="s">${esc(w.memo)}</div>` : ''}</div>
+      ${w.url ? `<span class="link-mark">↗</span>` : ''}
+      <span class="date">${fmtDate(w.date)}</span>`;
+    el.addEventListener('click', () => openWorkForm(w.id));
+    box.appendChild(el);
+  }
+}
+
+function renderLogs(o){
+  const box = $('#d-logs'); box.innerHTML = '';
+  const logs = [...(o.logs||[])].sort((a,b) => (b.date||'').localeCompare(a.date||''));
+  if(!logs.length){ box.innerHTML = `<div class="sub-empty">最新情報や感想を、日付つきで残せます</div>`; return; }
+  for(const l of logs){
+    const el = document.createElement('button');
+    el.className = 'item';
+    el.innerHTML = `<div class="body"><div class="t" style="font-weight:500">${esc(l.text)}</div></div><span class="date">${fmtDate(l.date)}</span>`;
+    el.addEventListener('click', () => openLogForm(l.id));
+    box.appendChild(el);
+  }
+}
+
+/* ---------- gallery (推しの作品写真 3枠) ---------- */
+const GALLERY_N = 4;
+const CROSS_SVG = '<svg class="g-cross" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="0" x2="100" y2="100"/><line x1="100" y1="0" x2="0" y2="100"/></svg>';
+
+function renderGallery(o){
+  const g = $('#d-gallery');
+  g.innerHTML = '';
+  if(!Array.isArray(o.gallery)) o.gallery = Array(GALLERY_N).fill(null);
+  while(o.gallery.length < GALLERY_N) o.gallery.push(null);
+  o.gallery.slice(0, GALLERY_N).forEach((key, i) => {
+    if(key){
+      const b = document.createElement('button');
+      b.className = 'g-slot filled';
+      b.setAttribute('aria-label', '写真を拡大');
+      b.addEventListener('click', () => openLightbox(o, i));
+      g.appendChild(b);
+      photoGet(key).then(url => {
+        if(!url) return;
+        const img = document.createElement('img');
+        img.src = url; img.alt = '';
+        b.appendChild(img);
+      });
+    } else {
+      const l = document.createElement('label');
+      l.className = 'g-slot';
+      l.innerHTML = CROSS_SVG + '<input type="file" accept="image/*">';
+      l.querySelector('input').addEventListener('change', async e => {
+        const f = e.target.files[0];
+        if(!f) return;
+        try {
+          const data = await compressImage(f);
+          const key = 'g_' + o.id + '_' + i + '_' + Date.now();
+          await photoSet(key, data);
+          o.gallery[i] = key;
+          saveData();
+          renderGallery(o);
+          toast('写真を追加しました');
+        } catch(err){ toast('写真を読み込めませんでした'); }
+      });
+      g.appendChild(l);
+    }
+  });
+}
+let lbOshi = null, lbIndex = -1;
+async function openLightbox(o, i){
+  lbOshi = o; lbIndex = i;
+  const url = await photoGet(o.gallery[i]);
+  if(!url){ toast('写真を読み込めませんでした'); return; }
+  $('#lb-img').src = url;
+  $('#ov-photo').classList.add('show');
+}
+$('#lb-close').addEventListener('click', () => $('#ov-photo').classList.remove('show'));
+$('#lb-del').addEventListener('click', async () => {
+  if(!lbOshi) return;
+  if(!confirm('この写真を削除しますか?')) return;
+  await photoDel(lbOshi.gallery[lbIndex]);
+  lbOshi.gallery[lbIndex] = null;
+  saveData();
+  $('#ov-photo').classList.remove('show');
+  renderGallery(lbOshi);
+  toast('削除しました');
+});
+
+/* ---------- oshi form ---------- */
+
+/* ---------- form gallery (保存前の一時ステージング) ---------- */
+let formGallery = Array(GALLERY_N).fill(null);      // 各要素: null / dataURL文字列
+let formGalleryKeys = Array(GALLERY_N).fill(null);  // 既存の写真キー(未変更スロット用)
+let formGalleryDirty = Array(GALLERY_N).fill(false); // ユーザーが変更したか
+function renderFormGallery(){
+  const g = $('#f-gallery');
+  g.innerHTML = '';
+  formGallery.forEach((data, i) => {
+    if(data){
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'g-slot filled';
+      b.setAttribute('aria-label', '写真を削除');
+      const img = document.createElement('img');
+      img.src = data; img.alt = '';
+      b.appendChild(img);
+      b.addEventListener('click', () => {
+        if(confirm('この写真を外しますか?')){
+          formGallery[i] = null; formGalleryDirty[i] = true; renderFormGallery();
+        }
+      });
+      g.appendChild(b);
+    } else {
+      const l = document.createElement('label');
+      l.className = 'g-slot';
+      l.innerHTML = CROSS_SVG + '<input type="file" accept="image/*">';
+      l.querySelector('input').addEventListener('change', async e => {
+        const f = e.target.files[0];
+        if(!f) return;
+        try {
+          formGallery[i] = await compressImage(f);
+          formGalleryDirty[i] = true;
+          renderFormGallery();
+        } catch(err){ toast('写真を読み込めませんでした'); }
+      });
+      g.appendChild(l);
+    }
+  });
+}
+
+async function openOshiForm(id){
+  editingOshiId = id || null;
+  pendingPhoto = undefined;
+  const o = id ? state.oshis.find(x => x.id === id) : null;
+  $('#oshi-form-title').textContent = o ? '推しを編集' : '推しを追加';
+  $('#f-name').value = o?.name || '';
+  catPicker.set(o?.category || CATS[0]);
+  setDateField('#f-bday', o?.birthday || '');
+  $('#f-official').value = o?.links?.official || '';
+  $('#f-x').value = o?.links?.x || '';
+  $('#f-yt').value = o?.links?.yt || '';
+  $('#f-ig').value = o?.links?.ig || '';
+  $('#f-other').value = o?.links?.other || '';
+  $('#f-memo').value = o?.memo || '';
+  const pick = $('#photo-pick');
+  pick.querySelectorAll('img').forEach(i => i.remove());
+  $('#photo-pick-hint').style.display = '';
+  if(o?.photoKey){
+    const url = await photoGet(o.photoKey);
+    if(url) setPickPreview(url);
+  }
+  $('#f-photo').value = '';
+  // コレクション枠のステージング初期化
+  formGallery = Array(GALLERY_N).fill(null);
+  formGalleryKeys = Array(GALLERY_N).fill(null);
+  formGalleryDirty = Array(GALLERY_N).fill(false);
+  renderFormGallery();
+  if(o && Array.isArray(o.gallery)){
+    for(let i = 0; i < GALLERY_N; i++){
+      const key = o.gallery[i];
+      if(key){
+        formGalleryKeys[i] = key;
+        photoGet(key).then(url => { if(url && !formGalleryDirty[i]){ formGallery[i] = url; renderFormGallery(); } });
+      }
+    }
+  }
+  openSheet('#ov-oshi');
+}
+function setPickPreview(url){
+  const pick = $('#photo-pick');
+  pick.querySelectorAll('img').forEach(i => i.remove());
+  const img = document.createElement('img'); img.src = url; img.alt = '';
+  pick.prepend(img);
+  $('#photo-pick-hint').style.display = 'none';
+}
+$('#f-photo').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if(!file) return;
+  try {
+    pendingPhoto = await compressImage(file);
+    setPickPreview(pendingPhoto);
+  } catch(err){ toast('写真を読み込めませんでした'); }
+});
+
+$('#btn-save-oshi').addEventListener('click', async () => {
+  const name = $('#f-name').value.trim();
+  if(!name){ toast('名前を入力してください'); return; }
+  let o;
+  if(editingOshiId){
+    o = state.oshis.find(x => x.id === editingOshiId);
+  } else {
+    o = { id: uid(), works: [], logs: [] };
+    state.oshis.push(o);
+  }
+  o.name = name;
+  o.category = catPicker.get();
+  o.birthday = getDateField('#f-bday');
+  o.color = OSHI_COLOR;
+  o.memo = $('#f-memo').value.trim();
+  o.links = {
+    official: $('#f-official').value.trim(),
+    x: $('#f-x').value.trim(),
+    yt: $('#f-yt').value.trim(),
+    ig: $('#f-ig').value.trim(),
+    other: $('#f-other').value.trim(),
+  };
+  if(pendingPhoto !== undefined){
+    if(o.photoKey) await photoDel(o.photoKey);
+    if(pendingPhoto){
+      o.photoKey = 'p_' + o.id + '_' + Date.now();
+      await photoSet(o.photoKey, pendingPhoto);
+    } else { o.photoKey = ''; }
+  }
+  // コレクション枠のコミット
+  if(!Array.isArray(o.gallery)) o.gallery = Array(GALLERY_N).fill(null);
+  while(o.gallery.length < GALLERY_N) o.gallery.push(null);
+  for(let i = 0; i < GALLERY_N; i++){
+    if(!formGalleryDirty[i]) continue;           // 変更なし → そのまま
+    if(formGalleryKeys[i]) await photoDel(formGalleryKeys[i]); // 旧写真を削除
+    if(formGallery[i]){
+      const key = 'g_' + o.id + '_' + i + '_' + Date.now();
+      await photoSet(key, formGallery[i]);
+      o.gallery[i] = key;
+    } else {
+      o.gallery[i] = null;
+    }
+  }
+  saveData();
+  closeSheets();
+  toast('保存しました');
+  renderHome();
+  if(currentOshiId === o.id && $('#view-detail').classList.contains('active')) openDetail(o.id);
+});
+
+/* ---------- work form ---------- */
+function openWorkForm(id){
+  editingWorkId = id || null;
+  const o = state.oshis.find(x => x.id === currentOshiId);
+  const w = id ? (o.works||[]).find(x => x.id === id) : null;
+  $('#work-form-title').textContent = w ? '作品を編集' : '作品を追加';
+  $('#w-title').value = w?.title || '';
+  wtypePicker.set(w?.type || WTYPES[0]);
+  setDateField('#w-date', w?.date || '');
+  $('#w-url').value = w?.url || '';
+  $('#w-memo').value = w?.memo || '';
+  $('#btn-del-work').style.display = w ? 'block' : 'none';
+  openSheet('#ov-work');
+}
+$('#btn-save-work').addEventListener('click', () => {
+  const title = $('#w-title').value.trim();
+  if(!title){ toast('タイトルを入力してください'); return; }
+  const o = state.oshis.find(x => x.id === currentOshiId);
+  o.works = o.works || [];
+  let w = editingWorkId ? o.works.find(x => x.id === editingWorkId) : null;
+  if(!w){ w = { id: uid() }; o.works.push(w); }
+  w.title = title;
+  w.type = wtypePicker.get();
+  w.date = getDateField('#w-date');
+  w.url = $('#w-url').value.trim();
+  w.memo = $('#w-memo').value.trim();
+  saveData(); closeSheets(); toast('保存しました'); renderWorkFilter(o); renderWorks(o);
+});
+$('#btn-del-work').addEventListener('click', () => {
+  const o = state.oshis.find(x => x.id === currentOshiId);
+  o.works = (o.works||[]).filter(x => x.id !== editingWorkId);
+  saveData(); closeSheets(); toast('削除しました'); renderWorkFilter(o); renderWorks(o);
+});
+
+/* ---------- log form ---------- */
+function openLogForm(id){
+  editingLogId = id || null;
+  const o = state.oshis.find(x => x.id === currentOshiId);
+  const l = id ? (o.logs||[]).find(x => x.id === id) : null;
+  $('#log-form-title').textContent = l ? '活動メモを編集' : '活動メモを追加';
+  setDateField('#l-date', l?.date || todayISO());
+  $('#l-text').value = l?.text || '';
+  $('#btn-del-log').style.display = l ? 'block' : 'none';
+  openSheet('#ov-log');
+}
+$('#btn-save-log').addEventListener('click', () => {
+  const text = $('#l-text').value.trim();
+  if(!text){ toast('内容を入力してください'); return; }
+  const o = state.oshis.find(x => x.id === currentOshiId);
+  o.logs = o.logs || [];
+  let l = editingLogId ? o.logs.find(x => x.id === editingLogId) : null;
+  if(!l){ l = { id: uid() }; o.logs.push(l); }
+  l.date = getDateField('#l-date');
+  l.text = text;
+  saveData(); closeSheets(); toast('保存しました'); renderLogs(o);
+});
+$('#btn-del-log').addEventListener('click', () => {
+  const o = state.oshis.find(x => x.id === currentOshiId);
+  o.logs = (o.logs||[]).filter(x => x.id !== editingLogId);
+  saveData(); closeSheets(); toast('削除しました'); renderLogs(o);
+});
+
+/* ---------- delete oshi ---------- */
+$('#btn-del-oshi').addEventListener('click', async () => {
+  const o = state.oshis.find(x => x.id === currentOshiId);
+  if(!o) return;
+  if(!confirm(`「${o.name}」を削除しますか?\n作品リストと活動メモもすべて消えます。`)) return;
+  if(o.photoKey) await photoDel(o.photoKey);
+  for(const k of (o.gallery || [])) if(k) await photoDel(k);
+  state.oshis = state.oshis.filter(x => x.id !== currentOshiId);
+  saveData(); toast('削除しました');
+  show('#view-home'); renderHome();
+});
+
+/* ---------- export / import ---------- */
+$('#btn-export').addEventListener('click', async () => {
+  const photos = {};
+  const keys = [];
+  for(const o of state.oshis){
+    if(o.photoKey) keys.push(o.photoKey);
+    for(const k of (o.gallery || [])) if(k) keys.push(k);
+  }
+  for(const k of keys){
+    const url = await photoGet(k);
+    if(url) photos[k] = url;
+  }
+  const blob = new Blob([JSON.stringify({ app:'tokimeku', version:1, data: state, photos })], { type:'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `tokimeku-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  closeSheets(); toast('バックアップを書き出しました');
+});
+$('#btn-import').addEventListener('click', () => $('#f-import').click());
+$('#f-import').addEventListener('change', async e => {
+  const file = e.target.files[0];
+  if(!file) return;
+  try {
+    const obj = JSON.parse(await file.text());
+    if(obj.app !== 'tokimeku' || !obj.data) throw new Error('format');
+    if(!confirm('現在のデータをバックアップの内容で置き換えます。よろしいですか?')) return;
+    state = obj.data;
+    for(const [k, v] of Object.entries(obj.photos || {})) await photoSet(k, v);
+    saveData(); closeSheets(); toast('読み込みました');
+    show('#view-home'); renderHome();
+  } catch(err){ toast('読み込めませんでした(ファイル形式を確認)'); }
+  e.target.value = '';
+});
+
+/* ---------- sheets / toast / nav ---------- */
+function openSheet(sel){ $(sel).classList.add('show'); }
+function closeSheets(){ document.querySelectorAll('.overlay').forEach(o => o.classList.remove('show')); }
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', e => {
+    if(e.target !== ov) return;
+    if(ov.classList.contains('stack')) ov.classList.remove('show');
+    else closeSheets();
+  });
+});
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeSheets));
+let toastTimer;
+function toast(msg){
+  const t = $('#toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+$('#fab-add').addEventListener('click', () => openOshiForm(null));
+$('#btn-edit').addEventListener('click', () => openOshiForm(currentOshiId));
+$('#btn-back').addEventListener('click', () => {
+  if(history.state && history.state.v === 'detail'){ history.back(); }
+  else { currentOshiId = null; show('#view-home'); renderHome(); }
+});
+$('#btn-menu').addEventListener('click', () => openSheet('#ov-menu'));
+
+/* ---------- PWA ---------- */
+if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      // 新しいSWが待機状態になったら、次回のために有効化を促す
+      reg.addEventListener('updatefound', () => {
+        const nw = reg.installing;
+        if(!nw) return;
+        nw.addEventListener('statechange', () => {
+          if(nw.state === 'installed' && navigator.serviceWorker.controller){
+            nw.postMessage && reg.waiting && reg.waiting.postMessage;
+          }
+        });
+      });
+    }).catch(() => {});
+    // コントローラーが変わった(新版有効化)ら一度だけ再読み込み
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if(reloaded) return;
+      reloaded = true;
+      location.reload();
+    });
+  });
+}
+
+renderHome();
+</script>
+</body>
+</html>
