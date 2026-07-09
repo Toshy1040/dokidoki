@@ -300,6 +300,50 @@ a{color:inherit}
   display:grid;place-items:center;color:var(--muted);font-size:13.5px;overflow:hidden;position:relative;background:var(--surface2);
 }
 .photo-pick img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+
+/* 変形付き写真の表示: 枠は黒背景、imgにtransformを適用 */
+.ph-frame{position:absolute;inset:0;overflow:hidden;background:#000}
+.ph-frame img{position:absolute;top:50%;left:50%;will-change:transform}
+.ph-frame img.fit-cover{width:100%;height:100%;object-fit:cover;transform:translate(-50%,-50%)}
+.ph-frame img.fit-contain{max-width:100%;max-height:100%;width:auto;height:auto;transform:translate(-50%,-50%)}
+
+/* 調整ボタン(フォーム/詳細) */
+.adjust-btn{
+  display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;
+  padding:8px 14px;border-radius:11px;background:var(--surface2);border:1px solid var(--line);
+  color:color-mix(in srgb, var(--oshi) 55%, white);margin-top:8px;
+}
+.adjust-btn svg{width:15px;height:15px;fill:currentColor}
+.hero-adjust{position:absolute;z-index:3;right:14px;bottom:14px;width:40px;height:40px;border-radius:12px;
+  background:rgba(13,10,22,.6);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.16);
+  display:grid;place-items:center}
+.hero-adjust svg{width:18px;height:18px;fill:#fff}
+.g-adjust{position:absolute;z-index:4;right:5px;bottom:5px;width:26px;height:26px;border-radius:8px;
+  background:rgba(13,10,22,.66);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.18);
+  display:grid;place-items:center;padding:0}
+.g-adjust svg{width:14px;height:14px;fill:#fff}
+
+/* 調整モーダル */
+#ov-adjust{align-items:center;padding:16px}
+.adjust-panel{width:100%;max-width:460px;display:flex;flex-direction:column;gap:14px;animation:fade .2s ease}
+.adjust-stage{
+  position:relative;width:100%;aspect-ratio:1;border-radius:18px;overflow:hidden;background:#000;
+  border:1px solid var(--line);touch-action:none;user-select:none;
+}
+.adjust-stage.ar-hero{aspect-ratio:16/10}
+.adjust-stage img{position:absolute;top:50%;left:50%;will-change:transform;pointer-events:none;-webkit-user-drag:none}
+.adjust-stage .grid-guide{position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.18) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.18) 1px,transparent 1px);
+  background-size:33.33% 33.33%;opacity:0;transition:opacity .2s}
+.adjust-stage.dragging .grid-guide{opacity:1}
+.adjust-controls{display:flex;flex-direction:column;gap:12px}
+.fit-toggle{display:flex;gap:8px}
+.fit-toggle button{flex:1;padding:10px;border-radius:12px;background:var(--surface2);border:1px solid var(--line);color:var(--muted);font-size:13.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px}
+.fit-toggle button.on{background:color-mix(in srgb,var(--oshi) 20%,var(--surface2));border-color:color-mix(in srgb,var(--oshi) 45%,transparent);color:color-mix(in srgb,var(--oshi) 78%,white)}
+.zoom-row{display:flex;align-items:center;gap:12px}
+.zoom-row .zlabel{font-size:11px;color:var(--muted);letter-spacing:.06em;flex:none;width:44px}
+.zoom-row input[type=range]{flex:1;accent-color:var(--oshi)}
+.adjust-hint{font-size:12px;color:var(--muted);text-align:center}
 .photo-pick input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .sheet-actions{display:flex;gap:10px;margin-top:22px}
 .btn{flex:1;padding:13px;border-radius:14px;font-size:15px;font-weight:700;text-align:center}
@@ -423,6 +467,10 @@ a{color:inherit}
         <span id="photo-pick-hint">タップして写真を選ぶ</span>
         <input type="file" accept="image/*" id="f-photo">
       </label>
+      <button type="button" class="adjust-btn" id="f-photo-adjust" style="display:none">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17v2a2 2 0 002 2h2v-2H5v-2H3zM5 5h2V3H5a2 2 0 00-2 2v2h2V5zm14-2h-2v2h2v2h2V5a2 2 0 00-2-2zm0 16h-2v2h2a2 2 0 002-2v-2h-2v2zM9 8a2 2 0 100 4 2 2 0 000-4zm7 8l-2.5-3-2 2.5L11 13l-3 4h11z"/></svg>
+        大きさ・位置を調整
+      </button>
     </div>
     <div class="f-group">
       <span class="f-label">コレクション</span>
@@ -570,7 +618,39 @@ a{color:inherit}
     <img id="lb-img" alt="推しの写真">
     <div class="lb-actions">
       <button class="lb-btn del" id="lb-del">削除</button>
+      <button class="lb-btn" id="lb-adjust">調整</button>
       <button class="lb-btn" id="lb-close">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= PHOTO ADJUST ================= -->
+<div class="overlay stack" id="ov-adjust">
+  <div class="adjust-panel" role="dialog" aria-modal="true">
+    <div class="adjust-stage" id="adjust-stage">
+      <img id="adjust-img" alt="調整中の写真">
+      <div class="grid-guide"></div>
+    </div>
+    <div class="adjust-controls">
+      <div class="fit-toggle" id="fit-toggle">
+        <button data-fit="cover" class="on">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 3h14v14H3z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 6h8v8H6z"/></svg>
+          切り抜く
+        </button>
+        <button data-fit="contain">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="5.5" width="14" height="9" rx="1" fill="currentColor"/></svg>
+          全体を収める
+        </button>
+      </div>
+      <div class="zoom-row" id="zoom-row">
+        <span class="zlabel">ズーム</span>
+        <input type="range" id="zoom-range" min="1" max="4" step="0.01" value="1">
+      </div>
+      <div class="adjust-hint" id="adjust-hint">ドラッグで位置、ピンチかスライダーで拡大</div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn btn-ghost" id="adjust-cancel">キャンセル</button>
+      <button class="btn btn-primary" id="adjust-save">決定</button>
     </div>
   </div>
 </div>
@@ -647,6 +727,137 @@ async function photoDel(key){
   db.transaction('photos','readwrite').objectStore('photos').delete(key);
 }
 
+/* ---------- photo transform (拡大/位置/収める) ---------- */
+// transform = { scale, nx, ny, fit }  nx,ny: フレーム幅に対する平行移動の割合  fit: 'cover'|'contain'
+const defaultTransform = () => ({ scale: 1, nx: 0, ny: 0, fit: 'cover' });
+function normTransform(t){
+  if(!t || typeof t !== 'object') return defaultTransform();
+  return {
+    scale: (typeof t.scale === 'number' && t.scale > 0) ? t.scale : 1,
+    nx: typeof t.nx === 'number' ? t.nx : 0,
+    ny: typeof t.ny === 'number' ? t.ny : 0,
+    fit: t.fit === 'contain' ? 'contain' : 'cover',
+  };
+}
+// 指定コンテナに、変形を適用した写真を描画(黒背景つき)
+async function renderPhotoInto(container, key, transform, altText){
+  const t = normTransform(transform);
+  const url = key ? await photoGet(key) : null;
+  if(!url){ return false; }
+  const frame = document.createElement('div');
+  frame.className = 'ph-frame';
+  const img = document.createElement('img');
+  img.src = url; img.alt = altText || '';
+  img.className = t.fit === 'contain' ? 'fit-contain' : 'fit-cover';
+  frame.appendChild(img);
+  container.innerHTML = '';
+  container.appendChild(frame);
+  // フレーム幅を基準に平行移動を実ピクセル化
+  requestAnimationFrame(() => {
+    const w = frame.clientWidth || 1;
+    const px = t.nx * w, py = t.ny * w;
+    img.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px)) scale(${t.scale})`;
+  });
+  return true;
+}
+
+/* ---------- adjust modal ---------- */
+let adjustState = null; // { url, t:{scale,nx,ny,fit}, onSave }
+function openAdjust(url, transform, { ar = 'square', onSave } = {}){
+  const stage = $('#adjust-stage');
+  stage.classList.toggle('ar-hero', ar === 'hero');
+  const t = normTransform(transform);
+  adjustState = { url, t: { ...t }, onSave };
+  $('#adjust-img').src = url;
+  applyAdjustImg();
+  document.querySelectorAll('#fit-toggle button').forEach(b => b.classList.toggle('on', b.dataset.fit === t.fit));
+  updateZoomUI();
+  $('#ov-adjust').classList.add('show');
+}
+function adjustStageW(){ return $('#adjust-stage').clientWidth || 1; }
+function applyAdjustImg(){
+  const img = $('#adjust-img');
+  const t = adjustState.t;
+  const contain = t.fit === 'contain';
+  img.style.maxWidth = contain ? '100%' : '';
+  img.style.maxHeight = contain ? '100%' : '';
+  img.style.width = contain ? 'auto' : '100%';
+  img.style.height = contain ? 'auto' : '100%';
+  img.style.objectFit = contain ? 'contain' : 'cover';
+  const w = adjustStageW();
+  const px = t.nx * w, py = t.ny * w;
+  img.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px)) scale(${t.scale})`;
+}
+function updateZoomUI(){
+  const t = adjustState.t;
+  const zr = $('#zoom-range');
+  zr.disabled = (t.fit === 'contain');
+  zr.value = t.scale;
+  $('#zoom-row').style.opacity = zr.disabled ? '.4' : '1';
+  $('#adjust-hint').textContent = t.fit === 'contain'
+    ? '写真全体を表示します(余白は黒背景)'
+    : 'ドラッグで位置、ピンチかスライダーで拡大';
+}
+
+document.querySelectorAll('#fit-toggle button').forEach(b => {
+  b.addEventListener('click', () => {
+    if(!adjustState) return;
+    adjustState.t.fit = b.dataset.fit;
+    if(adjustState.t.fit === 'contain'){ adjustState.t.scale = 1; adjustState.t.nx = 0; adjustState.t.ny = 0; }
+    document.querySelectorAll('#fit-toggle button').forEach(x => x.classList.toggle('on', x === b));
+    applyAdjustImg(); updateZoomUI();
+  });
+});
+$('#zoom-range').addEventListener('input', e => {
+  if(!adjustState || adjustState.t.fit === 'contain') return;
+  adjustState.t.scale = parseFloat(e.target.value);
+  applyAdjustImg();
+});
+(function setupAdjustGestures(){
+  const stage = $('#adjust-stage');
+  let pts = new Map();
+  let base = null;
+  function pinchDist(){
+    if(pts.size < 2) return 0;
+    const a = [...pts.values()];
+    return Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+  }
+  stage.addEventListener('pointerdown', e => {
+    if(!adjustState || adjustState.t.fit === 'contain') return;
+    stage.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    stage.classList.add('dragging');
+    base = { nx: adjustState.t.nx, ny: adjustState.t.ny, scale: adjustState.t.scale, dist: pinchDist(), cx: e.clientX, cy: e.clientY };
+  });
+  stage.addEventListener('pointermove', e => {
+    if(!adjustState || adjustState.t.fit === 'contain' || !pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const w = adjustStageW();
+    if(pts.size >= 2){
+      const d = pinchDist();
+      if(base.dist > 0) adjustState.t.scale = Math.min(4, Math.max(1, base.scale * (d / base.dist)));
+      applyAdjustImg(); $('#zoom-range').value = adjustState.t.scale;
+    } else {
+      adjustState.t.nx = base.nx + (e.clientX - base.cx) / w;
+      adjustState.t.ny = base.ny + (e.clientY - base.cy) / w;
+      applyAdjustImg();
+    }
+  });
+  function endPt(e){
+    pts.delete(e.pointerId);
+    if(pts.size === 0) stage.classList.remove('dragging');
+    if(adjustState) base = { nx: adjustState.t.nx, ny: adjustState.t.ny, scale: adjustState.t.scale, dist: pinchDist(), cx: e.clientX, cy: e.clientY };
+  }
+  stage.addEventListener('pointerup', endPt);
+  stage.addEventListener('pointercancel', endPt);
+})();
+$('#adjust-cancel').addEventListener('click', () => { $('#ov-adjust').classList.remove('show'); adjustState = null; });
+$('#adjust-save').addEventListener('click', () => {
+  if(adjustState && adjustState.onSave) adjustState.onSave({ ...adjustState.t });
+  $('#ov-adjust').classList.remove('show'); adjustState = null;
+});
+
+
 /* ---------- image compress ---------- */
 function compressImage(file){
   return new Promise((resolve, reject) => {
@@ -678,6 +889,7 @@ let editingOshiId = null;
 let editingWorkId = null;
 let editingLogId = null;
 let pendingPhoto = undefined; // undefined=変更なし / string=新写真 / null=なし
+let pendingPhotoTransform = null; // メイン写真の変形(調整モーダルで更新)
 
 const OSHI_COLOR = '#ff8c42'; // 統一アクセントカラー(オレンジ)
 
@@ -959,12 +1171,10 @@ async function renderHome(){
     attachReorderHandlers(card, o.id);
     grid.appendChild(card);
     if(o.photoKey){
-      photoGet(o.photoKey).then(url => {
-        if(!url) return;
-        const img = document.createElement('img');
-        img.src = url; img.alt = o.name;
-        card.insertBefore(img, card.querySelector('.veil'));
-      });
+      const holder = document.createElement('div');
+      holder.style.cssText = 'position:absolute;inset:0';
+      card.insertBefore(holder, card.querySelector('.veil'));
+      renderPhotoInto(holder, o.photoKey, o.photoTransform, o.name);
     }
   }
   // 空きマス(＋枠): 0人でも1行分、1人以上なら行の余りを埋める
@@ -1001,9 +1211,25 @@ async function openDetail(id){
 
   const wrap = $('#d-photo-wrap');
   wrap.innerHTML = `<div class="noimg">${esc((o.name||'?').slice(0,1))}</div>`;
+  $('#d-hero-adjust')?.remove();
   if(o.photoKey){
-    const url = await photoGet(o.photoKey);
-    if(url) wrap.innerHTML = `<img src="${url}" alt="${esc(o.name)}">`;
+    const ok = await renderPhotoInto(wrap, o.photoKey, o.photoTransform, o.name);
+    if(ok){
+      const ab = document.createElement('button');
+      ab.className = 'hero-adjust'; ab.id = 'd-hero-adjust'; ab.setAttribute('aria-label','写真を調整');
+      ab.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17v2a2 2 0 002 2h2v-2H5v-2H3zM5 5h2V3H5a2 2 0 00-2 2v2h2V5zm14-2h-2v2h2v2h2V5a2 2 0 00-2-2zm0 16h-2v2h2a2 2 0 002-2v-2h-2v2zM9 8a2 2 0 100 4 2 2 0 000-4zm7 8l-2.5-3-2 2.5L11 13l-3 4h11z"/></svg>';
+      ab.addEventListener('click', (e) => {
+        e.stopPropagation();
+        (async () => {
+          const url = await photoGet(o.photoKey);
+          if(!url) return;
+          openAdjust(url, o.photoTransform, { ar: 'hero', onSave: (t) => {
+            o.photoTransform = t; saveData(); openDetail(o.id);
+          }});
+        })();
+      });
+      $('#d-hero').appendChild(ab);
+    }
   }
 
   // birthday: カウントダウン表示は廃止(入力は保持)
@@ -1107,6 +1333,14 @@ function renderLogs(o){
 const GALLERY_N = 4;
 const CROSS_SVG = '<svg class="g-cross" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="0" y1="0" x2="100" y2="100"/><line x1="100" y1="0" x2="0" y2="100"/></svg>';
 
+function galTransform(o, i){
+  if(!Array.isArray(o.galleryTransform)) o.galleryTransform = [];
+  return o.galleryTransform[i] || null;
+}
+function setGalTransform(o, i, t){
+  if(!Array.isArray(o.galleryTransform)) o.galleryTransform = [];
+  o.galleryTransform[i] = normTransform(t);
+}
 function renderGallery(o){
   const g = $('#d-gallery');
   g.innerHTML = '';
@@ -1119,12 +1353,23 @@ function renderGallery(o){
       b.setAttribute('aria-label', '写真を拡大');
       b.addEventListener('click', () => openLightbox(o, i));
       g.appendChild(b);
-      photoGet(key).then(url => {
+      const holder = document.createElement('div');
+      holder.style.cssText = 'position:absolute;inset:0';
+      b.appendChild(holder);
+      renderPhotoInto(holder, key, galTransform(o, i), '');
+      // 調整ボタン
+      const adj = document.createElement('button');
+      adj.className = 'g-adjust'; adj.setAttribute('aria-label','写真を調整');
+      adj.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17v2a2 2 0 002 2h2v-2H5v-2H3zM5 5h2V3H5a2 2 0 00-2 2v2h2V5zm14-2h-2v2h2v2h2V5a2 2 0 00-2-2zm0 16h-2v2h2a2 2 0 002-2v-2h-2v2zM9 8a2 2 0 100 4 2 2 0 000-4zm7 8l-2.5-3-2 2.5L11 13l-3 4h11z"/></svg>';
+      adj.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const url = await photoGet(key);
         if(!url) return;
-        const img = document.createElement('img');
-        img.src = url; img.alt = '';
-        b.appendChild(img);
+        openAdjust(url, galTransform(o, i), { ar: 'square', onSave: (t) => {
+          setGalTransform(o, i, t); saveData(); renderGallery(o);
+        }});
       });
+      b.appendChild(adj);
     } else {
       const l = document.createElement('label');
       l.className = 'g-slot';
@@ -1137,6 +1382,7 @@ function renderGallery(o){
           const key = 'g_' + o.id + '_' + i + '_' + Date.now();
           await photoSet(key, data);
           o.gallery[i] = key;
+          setGalTransform(o, i, defaultTransform());
           saveData();
           renderGallery(o);
           toast('写真を追加しました');
@@ -1155,11 +1401,21 @@ async function openLightbox(o, i){
   $('#ov-photo').classList.add('show');
 }
 $('#lb-close').addEventListener('click', () => $('#ov-photo').classList.remove('show'));
+$('#lb-adjust').addEventListener('click', async () => {
+  if(!lbOshi) return;
+  const url = await photoGet(lbOshi.gallery[lbIndex]);
+  if(!url) return;
+  $('#ov-photo').classList.remove('show');
+  openAdjust(url, galTransform(lbOshi, lbIndex), { ar: 'square', onSave: (t) => {
+    setGalTransform(lbOshi, lbIndex, t); saveData(); renderGallery(lbOshi);
+  }});
+});
 $('#lb-del').addEventListener('click', async () => {
   if(!lbOshi) return;
   if(!confirm('この写真を削除しますか?')) return;
   await photoDel(lbOshi.gallery[lbIndex]);
   lbOshi.gallery[lbIndex] = null;
+  if(Array.isArray(lbOshi.galleryTransform)) lbOshi.galleryTransform[lbIndex] = null;
   saveData();
   $('#ov-photo').classList.remove('show');
   renderGallery(lbOshi);
@@ -1225,9 +1481,11 @@ async function openOshiForm(id){
   const pick = $('#photo-pick');
   pick.querySelectorAll('img').forEach(i => i.remove());
   $('#photo-pick-hint').style.display = '';
+  pendingPhotoTransform = o?.photoTransform ? normTransform(o.photoTransform) : defaultTransform();
+  $('#f-photo-adjust').style.display = 'none';
   if(o?.photoKey){
     const url = await photoGet(o.photoKey);
-    if(url) setPickPreview(url);
+    if(url){ setPickPreview(url); $('#f-photo-adjust').style.display = 'inline-flex'; }
   }
   $('#f-photo').value = '';
   // コレクション枠のステージング初期化
@@ -1258,8 +1516,21 @@ $('#f-photo').addEventListener('change', async e => {
   if(!file) return;
   try {
     pendingPhoto = await compressImage(file);
+    pendingPhotoTransform = defaultTransform();
     setPickPreview(pendingPhoto);
+    $('#f-photo-adjust').style.display = 'inline-flex';
   } catch(err){ toast('写真を読み込めませんでした'); }
+});
+// メイン写真の調整
+$('#f-photo-adjust').addEventListener('click', async () => {
+  let url = pendingPhoto;
+  if(url === undefined || url === null){
+    // 既存写真を使用
+    const o = editingOshiId ? state.oshis.find(x => x.id === editingOshiId) : null;
+    if(o?.photoKey) url = await photoGet(o.photoKey);
+  }
+  if(!url){ toast('先に写真を選んでください'); return; }
+  openAdjust(url, pendingPhotoTransform, { ar: 'hero', onSave: (t) => { pendingPhotoTransform = t; } });
 });
 
 $('#btn-save-oshi').addEventListener('click', async () => {
@@ -1291,18 +1562,24 @@ $('#btn-save-oshi').addEventListener('click', async () => {
       await photoSet(o.photoKey, pendingPhoto);
     } else { o.photoKey = ''; }
   }
+  // メイン写真の変形を保存(写真がある場合)
+  if(o.photoKey) o.photoTransform = pendingPhotoTransform ? normTransform(pendingPhotoTransform) : defaultTransform();
+  else o.photoTransform = null;
   // コレクション枠のコミット
   if(!Array.isArray(o.gallery)) o.gallery = Array(GALLERY_N).fill(null);
   while(o.gallery.length < GALLERY_N) o.gallery.push(null);
   for(let i = 0; i < GALLERY_N; i++){
     if(!formGalleryDirty[i]) continue;           // 変更なし → そのまま
     if(formGalleryKeys[i]) await photoDel(formGalleryKeys[i]); // 旧写真を削除
+    if(!Array.isArray(o.galleryTransform)) o.galleryTransform = [];
     if(formGallery[i]){
       const key = 'g_' + o.id + '_' + i + '_' + Date.now();
       await photoSet(key, formGallery[i]);
       o.gallery[i] = key;
+      o.galleryTransform[i] = defaultTransform(); // 新規は既定、詳細で調整可能
     } else {
       o.gallery[i] = null;
+      o.galleryTransform[i] = null;
     }
   }
   saveData();
