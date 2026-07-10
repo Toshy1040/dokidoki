@@ -255,9 +255,22 @@ a{color:inherit}
 .dp-d:active{background:var(--surface2)}
 .dp-d.today{border:1px solid color-mix(in srgb, var(--oshi) 55%, transparent)}
 .dp-d.sel{background:var(--oshi);color:#140d08;font-weight:700;box-shadow:0 0 14px color-mix(in srgb, var(--oshi) 45%, transparent)}
-.dp-foot{display:flex;justify-content:space-between;margin-top:14px}
+.dp-foot{display:flex;justify-content:center;gap:24px;margin-top:12px}
 .dp-link{font-size:13.5px;color:var(--muted);padding:8px 12px;border-radius:10px}
 .dp-link:active{background:var(--surface2)}
+
+/* 日付の数字入力 */
+.dp-input-wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 0 4px}
+.dp-input{
+  width:100%;text-align:center;font-family:var(--num);font-size:30px;font-weight:600;letter-spacing:.14em;
+  background:var(--surface2);border:1px solid var(--line);border-radius:14px;color:var(--text);padding:16px 12px;
+}
+.dp-input:focus{outline:none;border-color:color-mix(in srgb, var(--oshi) 60%, transparent);box-shadow:0 0 0 3px color-mix(in srgb, var(--oshi) 14%, transparent)}
+.dp-preview{font-family:var(--disp);font-size:20px;font-weight:700;color:var(--muted);min-height:1.4em}
+.dp-preview.ok{color:color-mix(in srgb, var(--gold) 60%, var(--text))}
+.dp-preview.ng{color:var(--danger);font-family:var(--body);font-size:14px;font-weight:600}
+.dp-hint{font-size:12px;color:var(--muted);letter-spacing:.03em}
+.dp-hint b{font-family:var(--num);color:color-mix(in srgb, var(--oshi) 70%, white);font-weight:700}
 .f-date{text-align:left;cursor:pointer}
 .f-date.placeholder{color:var(--muted)}
 
@@ -630,23 +643,21 @@ a{color:inherit}
 
 <!-- ================= DATE PICKER ================= -->
 <div class="overlay stack" id="ov-date">
-  <div class="sheet" role="dialog" aria-modal="true" aria-label="日付を選ぶ">
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="日付を入力">
     <div class="grab"></div>
-    <div class="dp-head">
-      <div class="dp-nav">
-        <button type="button" class="dp-btn" id="dp-py" aria-label="前の年">«</button>
-        <button type="button" class="dp-btn" id="dp-pm" aria-label="前の月">‹</button>
-      </div>
-      <div class="dp-title" id="dp-title"></div>
-      <div class="dp-nav">
-        <button type="button" class="dp-btn" id="dp-nm" aria-label="次の月">›</button>
-        <button type="button" class="dp-btn" id="dp-ny" aria-label="次の年">»</button>
-      </div>
+    <h2>日付を入力</h2>
+    <div class="dp-input-wrap">
+      <input type="tel" inputmode="numeric" id="dp-input" class="dp-input" placeholder="19890820" maxlength="10" autocomplete="off">
+      <div class="dp-preview" id="dp-preview">年月日を8桁で入力</div>
+      <div class="dp-hint">例: 1989年8月20日 → <b>19890820</b></div>
     </div>
-    <div class="dp-grid" id="dp-grid"></div>
     <div class="dp-foot">
       <button type="button" class="dp-link" id="dp-clear">クリア</button>
       <button type="button" class="dp-link" id="dp-today">今日</button>
+    </div>
+    <div class="sheet-actions">
+      <button type="button" class="btn btn-ghost" id="dp-cancel">キャンセル</button>
+      <button type="button" class="btn btn-primary" id="dp-ok">決定</button>
     </div>
   </div>
 </div>
@@ -1028,46 +1039,60 @@ const todayISO = () => {
   return t.toISOString().slice(0,10);
 };
 
-let dpY, dpM, dpSelected = '', dpOnPick = null;
+let dpOnPick = null;
 function openDatePicker(iso, onPick){
   dpOnPick = onPick;
-  dpSelected = iso || '';
-  const base = iso ? new Date(iso + 'T00:00:00') : new Date();
-  dpY = base.getFullYear(); dpM = base.getMonth();
-  renderDP();
+  const inp = $('#dp-input');
+  // 既存値があれば数字8桁で初期表示
+  inp.value = iso ? iso.replace(/-/g, '') : '';
+  updateDPPreview();
   $('#ov-date').classList.add('show');
   pushOverlayState();
+  setTimeout(() => { inp.focus(); }, 60);
 }
-function renderDP(){
-  $('#dp-title').textContent = `${dpY}年 ${dpM + 1}月`;
-  const grid = $('#dp-grid');
-  grid.innerHTML = '';
-  for(const w of ['日','月','火','水','木','金','土']){
-    const s = document.createElement('span');
-    s.className = 'dp-w'; s.textContent = w;
-    grid.appendChild(s);
-  }
-  const first = new Date(dpY, dpM, 1).getDay();
-  const days = new Date(dpY, dpM + 1, 0).getDate();
-  for(let i = 0; i < first; i++) grid.appendChild(document.createElement('span'));
-  const tISO = todayISO();
-  for(let d = 1; d <= days; d++){
-    const iso = `${dpY}-${String(dpM+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'dp-d' + (iso === dpSelected ? ' sel' : '') + (iso === tISO ? ' today' : '');
-    b.textContent = d;
-    b.addEventListener('click', () => { dpOnPick && dpOnPick(iso); closeDP(); });
-    grid.appendChild(b);
+// 8桁数字 → ISO(YYYY-MM-DD)。不正なら null
+function digitsToISO(digits){
+  if(!/^\d{8}$/.test(digits)) return null;
+  const y = +digits.slice(0,4), m = +digits.slice(4,6), d = +digits.slice(6,8);
+  if(y < 1900 || y > 2100 || m < 1 || m > 12 || d < 1 || d > 31) return null;
+  const dt = new Date(y, m-1, d);
+  if(dt.getFullYear() !== y || dt.getMonth() !== m-1 || dt.getDate() !== d) return null; // 2月30日など弾く
+  return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function updateDPPreview(){
+  const raw = $('#dp-input').value.replace(/\D/g, '');
+  const pv = $('#dp-preview');
+  const ok = $('#dp-ok');
+  if(raw.length === 0){ pv.textContent = '年月日を8桁で入力'; pv.className = 'dp-preview'; ok.disabled = false; return; }
+  const iso = digitsToISO(raw);
+  if(iso){
+    const [y,m,d] = iso.split('-').map(Number);
+    pv.textContent = `${y}年${m}月${d}日`;
+    pv.className = 'dp-preview ok';
+    ok.disabled = false;
+  } else {
+    pv.textContent = raw.length < 8 ? `あと${8 - raw.length}桁` : '正しい日付を入力してください';
+    pv.className = 'dp-preview ng';
+    ok.disabled = raw.length >= 8;
   }
 }
 function closeDP(){ $('#ov-date').classList.remove('show'); }
-$('#dp-pm').addEventListener('click', () => { dpM--; if(dpM < 0){ dpM = 11; dpY--; } renderDP(); });
-$('#dp-nm').addEventListener('click', () => { dpM++; if(dpM > 11){ dpM = 0; dpY++; } renderDP(); });
-$('#dp-py').addEventListener('click', () => { dpY--; renderDP(); });
-$('#dp-ny').addEventListener('click', () => { dpY++; renderDP(); });
+$('#dp-input').addEventListener('input', e => {
+  // 数字のみ許可
+  const v = e.target.value.replace(/\D/g, '').slice(0,8);
+  e.target.value = v;
+  updateDPPreview();
+});
 $('#dp-clear').addEventListener('click', () => { dpOnPick && dpOnPick(''); closeDP(); });
-$('#dp-today').addEventListener('click', () => { dpOnPick && dpOnPick(todayISO()); closeDP(); });
+$('#dp-today').addEventListener('click', () => { $('#dp-input').value = todayISO().replace(/-/g,''); updateDPPreview(); });
+$('#dp-cancel').addEventListener('click', closeDP);
+$('#dp-ok').addEventListener('click', () => {
+  const raw = $('#dp-input').value.replace(/\D/g, '');
+  if(raw.length === 0){ dpOnPick && dpOnPick(''); closeDP(); return; }
+  const iso = digitsToISO(raw);
+  if(!iso){ toast('正しい日付を8桁で入力してください'); return; }
+  dpOnPick && dpOnPick(iso); closeDP();
+});
 $('#f-bday').addEventListener('click', () => openDatePicker(getDateField('#f-bday'), iso => setDateField('#f-bday', iso)));
 $('#w-date').addEventListener('click', () => openDatePicker(getDateField('#w-date'), iso => setDateField('#w-date', iso)));
 $('#l-date').addEventListener('click', () => openDatePicker(getDateField('#l-date'), iso => setDateField('#l-date', iso)));
