@@ -1102,6 +1102,7 @@ function show(view){
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   $(view).classList.add('active');
   $('#fab-add').style.display = (view === '#view-home') ? 'flex' : 'none';
+  if(view === '#view-home'){ try { localStorage.setItem('tokimeku-view', 'home'); } catch(e){} }
   window.scrollTo(0,0);
 }
 
@@ -1301,6 +1302,7 @@ async function renderHome(){
 /* ---------- detail render ---------- */
 async function openDetail(id){
   currentOshiId = id;
+  try { localStorage.setItem('tokimeku-view', 'detail:' + id); } catch(e){}
   const o = state.oshis.find(x => x.id === id);
   if(!o) return;
   document.documentElement.style.setProperty('--oshi', OSHI_COLOR);
@@ -1883,7 +1885,23 @@ if('serviceWorker' in navigator && (location.protocol === 'https:' || location.h
   });
 }
 
-renderHome();
+/* ---------- 起動: 前回の画面を復元 ---------- */
+function restoreView(){
+  renderHome();
+  let saved = '';
+  try { saved = localStorage.getItem('tokimeku-view') || ''; } catch(e){}
+  if(saved.startsWith('detail:')){
+    const id = saved.slice(7);
+    const exists = state.oshis.some(x => x.id === id);
+    if(exists){
+      try { history.replaceState({ v:'home' }, ''); } catch(e){}
+      openDetail(id); // ここで detail 状態が1つ積まれる
+      return;
+    }
+  }
+  show('#view-home');
+}
+restoreView();
 </script>
 </body>
 </html>
