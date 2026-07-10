@@ -277,7 +277,7 @@ a{color:inherit}
 /* ---------- lightbox ---------- */
 #ov-photo{align-items:center;padding:20px}
 .lightbox{display:grid;gap:16px;justify-items:center;width:100%;max-width:560px;animation:fade .2s ease}
-.lightbox img{max-width:100%;max-height:64dvh;border-radius:18px;border:1px solid var(--line);box-shadow:0 24px 70px rgba(0,0,0,.55)}
+.lightbox img{max-width:100%;max-height:84dvh;border-radius:18px;border:1px solid var(--line);box-shadow:0 24px 70px rgba(0,0,0,.55)}
 .lb-actions{display:flex;gap:10px}
 .lb-btn{padding:11px 26px;border-radius:99px;font-size:14px;background:var(--surface);border:1px solid var(--line)}
 .lb-btn.del{color:var(--danger);border-color:rgba(255,107,129,.35)}
@@ -668,7 +668,6 @@ a{color:inherit}
     <img id="lb-img" alt="推しの写真">
     <div class="lb-actions">
       <button class="lb-btn del" id="lb-del">削除</button>
-      <button class="lb-btn" id="lb-adjust">調整</button>
       <button class="lb-btn" id="lb-close">閉じる</button>
     </div>
   </div>
@@ -1457,19 +1456,6 @@ function renderGallery(o){
       holder.style.cssText = 'position:absolute;inset:0';
       b.appendChild(holder);
       renderPhotoInto(holder, key, galTransform(o, i), '');
-      // 調整ボタン
-      const adj = document.createElement('button');
-      adj.className = 'g-adjust'; adj.setAttribute('aria-label','写真を調整');
-      adj.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17v2a2 2 0 002 2h2v-2H5v-2H3zM5 5h2V3H5a2 2 0 00-2 2v2h2V5zm14-2h-2v2h2v2h2V5a2 2 0 00-2-2zm0 16h-2v2h2a2 2 0 002-2v-2h-2v2zM9 8a2 2 0 100 4 2 2 0 000-4zm7 8l-2.5-3-2 2.5L11 13l-3 4h11z"/></svg>';
-      adj.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const url = await photoGet(key);
-        if(!url) return;
-        openAdjust(url, galTransform(o, i), { ar: 'square', onSave: (t) => {
-          setGalTransform(o, i, t); saveData(); renderGallery(o);
-        }});
-      });
-      b.appendChild(adj);
     } else {
       const l = document.createElement('label');
       l.className = 'g-slot';
@@ -1502,15 +1488,6 @@ async function openLightbox(o, i){
   pushOverlayState();
 }
 $('#lb-close').addEventListener('click', () => $('#ov-photo').classList.remove('show'));
-$('#lb-adjust').addEventListener('click', async () => {
-  if(!lbOshi) return;
-  const url = await photoGet(lbOshi.gallery[lbIndex]);
-  if(!url) return;
-  $('#ov-photo').classList.remove('show');
-  openAdjust(url, galTransform(lbOshi, lbIndex), { ar: 'square', onSave: (t) => {
-    setGalTransform(lbOshi, lbIndex, t); saveData(); renderGallery(lbOshi);
-  }});
-});
 $('#lb-del').addEventListener('click', async () => {
   if(!lbOshi) return;
   if(!confirm('この写真を削除しますか?')) return;
